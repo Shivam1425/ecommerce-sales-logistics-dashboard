@@ -67,7 +67,6 @@ I structured the report into three pages to answer different business questions:
 2.  **Logistics & Delivery Speed:** Focuses on shipping performance, tracking which states suffer the longest delays, and analyzing carrier efficiency.
 3.  **Customer Reviews & Payments:** Shows average review scores by product category and analyzes how customers prefer to pay (credit card installments vs. boleto/voucher).
 
-*(Note: Add dashboard screenshots here once you export them!)*
 
 ---
 
