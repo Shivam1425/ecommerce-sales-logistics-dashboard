@@ -59,33 +59,62 @@ Here are some of the key DAX measures I wrote to calculate KPIs and track logist
 
 ---
 
-## 🖥️ Dashboard Layout & Features
+## 🖥️ What's Inside the Dashboard (Pages & Visuals)
 
-I structured the report into three pages to answer different business questions:
+I split the report into 5 pages to keep things clean and avoid cluttering a single screen with too many charts. Here is how I designed each page:
 
-1.  **Sales Performance:** Highlights revenue growth over time, top-selling product categories, and a map showing which Brazilian states generated the most sales.
-2.  **Logistics & Delivery Speed:** Focuses on shipping performance, tracking which states suffer the longest delays, and analyzing carrier efficiency.
-3.  **Customer Reviews & Payments:** Shows average review scores by product category and analyzes how customers prefer to pay (credit card installments vs. boleto/voucher).
+### 1. Executive Overview
+This is the home page of the report, meant to give a quick snapshot of how the business is doing. I wanted a clean layout to show high-level numbers like total sales ($13.2M), overall order count (96K), customer count, and Net Revenue Margin (83.0%). I also calculated YoY growth (which is up over 208%) and added a monthly revenue trend line and a map visual to quickly see which states in Brazil generate the most sales.
 
+![Executive Overview](data/Screenshot%202026-06-20%20223729.png)
+
+---
+
+### 2. Revenue & Margin Drivers
+This page is all about the money. I built this to figure out where our profit margins are actually coming from. It lets you compare gross sales directly against net revenue after shipping/freight costs. I also added handy filters for years and months so you can drill down into specific periods, and mapped out revenue by seller city to spot where the top merchants are located.
+
+![Revenue & Margin Drivers](data/Screenshot%202026-06-20%20223800.png)
+
+---
+
+### 3. Customer Segmentation (RFM)
+This was one of the most interesting parts to build. I wanted to group our customer base using the RFM model (Recency, Frequency, Monetary). I wrote some DAX to calculate how recently a customer bought, how often they buy, and how much they spend, and then classified them into groups like "At Risk", "Loyal", or "New". I put a donut chart showing the split and a scatter plot to visualize the distribution of customer values.
+
+![Customer Segmentation](data/Screenshot%202026-06-20%20223824.png)
+
+---
+
+### 4. Product & Category Performance
+Here, I focused purely on inventory and product catalog analytics. Since Olist has over 30,000 unique products, I wanted to see which categories make up the bulk of our sales. I used a treemap for the top 10 categories by revenue and added metrics to show how many unique products we have per category. It's really helpful for identifying which items are high-volume but low-margin.
+
+![Product & Category Performance](data/Screenshot%202026-06-20%20223852.png)
+
+---
+
+### 5. Delivery, Reviews & Operations
+Lastly, I built an operations page to track logistics and customer satisfaction. This is where I calculated the actual vs. estimated delivery gap and on-time delivery rates. I wanted to see if shipping speed directly affected customer review scores. I put in a trend line for late deliveries and a breakdown comparing review ratings for on-time vs. late shipments, which clearly shows that late orders get way worse reviews.
+
+![Delivery, Reviews & Operations](data/Screenshot%202026-06-20%20223920.png)
 
 ---
 
 ## 🧠 Roadblocks & What I Learned
 
-Since this was a learning project, I ran into a few tricky challenges:
+Since this was a learning project, I ran into a few tricky challenges that took me some time to figure out:
 
-*   **Active vs. Inactive Relationships:** The orders table has three different date columns: `purchase_timestamp`, `approved_at`, and `delivered_customer_date`. When I tried to link them to my calendar, Power BI blocked me. I learned that you can only have one active relationship at a time. I solved this by keeping the purchase date active and writing DAX measures utilizing `USERELATIONSHIP` to filter by delivery dates when calculating logistics metrics.
-*   **Translating Portuguese Categories:** The raw products table lists categories in Portuguese. To make the dashboard readable for English speakers, I used Power Query to perform a left outer join with the translation lookup table, replacing the Portuguese names with their English equivalents before loading the data.
-*   **Handling Raw Dates:** Some of the timestamp columns were loaded as text strings by default. I used Power Query to transform them into proper date/time types so that my time-intelligence calculations wouldn't break.
+*   **Active vs. Inactive Relationships:** This was a major headache. The orders table has three different date columns: purchase timestamp, approved date, and delivered customer date. When I tried to link all of them to my calendar table, Power BI threw errors because you can't have multiple active relationships between the same two tables. I learned about inactive relationships and how to use the `USERELATIONSHIP()` function in DAX to activate them on the fly for specific logistics calculations.
+*   **Translating Portuguese Categories:** Since Olist is a Brazilian dataset, the product categories were in Portuguese. I didn't want the dashboard to have mixed languages. I found a translation table in the dataset and used Power Query to do a left outer join. Now all category visuals use the English names automatically.
+*   **Handling Raw Dates:** Some date columns were imported as text strings, which broke my time-intelligence calculations. I had to go back to Power Query and change the column types to Date/Time before loading them. It was a good reminder to always clean and verify data types first.
 
 ---
 
-## ⚙️ How to Run This Locally
+## ⚙️ How to Run This on Your Computer
 
-Because Power BI hardcodes local file paths, you will see a Data Source Error when you first open the dashboard. Here is how to fix it in 2 minutes:
+Because Power BI hardcodes absolute local file paths, you will see a Data Source Error when you first open the dashboard. Here is how to fix it in 2 minutes:
 
 1.  Open **Power BI Desktop**.
 2.  Open `ecommerce.pbix` from this directory.
 3.  Go to the Home tab, click the arrow under **Transform Data**, and select **Data source settings**.
 4.  For each CSV file, click **Change Source...**, click **Browse**, and select the matching CSV file from the `Ecommerce/data/` folder on your computer.
 5.  Click **Close** and then **Apply Changes**—the dashboard will load all your local data automatically!
+
