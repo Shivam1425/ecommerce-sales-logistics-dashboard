@@ -38,13 +38,32 @@ Here are some of the key DAX measures I wrote to calculate KPIs and track logist
     ```dax
     Total_Revenue = SUM(olist_order_items_dataset[price])
     ```
-*   **Total Orders:**
+*   **Total Orders (Corrected to avoid relationship filter bugs):**
     ```dax
-    Total_Orders = DISTINCTCOUNT(olist_orders_dataset[order_id])
+    Total_Orders = DISTINCTCOUNT(olist_order_items_dataset[order_id])
+    ```
+*   **True YoY Growth (Corrected to avoid "average of averages" skew):**
+    ```dax
+    Growth % = 
+    VAR CurrentRev = [Total Revenue]
+    VAR LastYearRev = [Revenue LY]
+    VAR MaxYear = MAX('Date Table'[Year])
+    VAR MaxYearSales = CALCULATE([Total Revenue], 'Date Table'[Year] = MaxYear)
+    VAR PrevYearSales = CALCULATE([Total Revenue], 'Date Table'[Year] = MaxYear - 1)
+    RETURN
+    IF(
+        ISFILTERED('Date Table'[Year]),
+        IF(LastYearRev > 10000, DIVIDE(CurrentRev - LastYearRev, LastYearRev), BLANK()),
+        DIVIDE(MaxYearSales - PrevYearSales, PrevYearSales)
+    )
     ```
 *   **Average Order Value (AOV):**
     ```dax
     Average_Order_Value = [Total_Revenue] / [Total_Orders]
+    ```
+*   **Geocoding Full Location (Calculated Column):**
+    ```dax
+    Full_Location = olist_customers_dataset[customer_state] & ", Brazil"
     ```
 *   **Delivery Delay (Days):**
     This measure tracks how early or late orders arrived compared to their estimated delivery date:
@@ -64,7 +83,7 @@ Here are some of the key DAX measures I wrote to calculate KPIs and track logist
 I split the report into 5 pages to keep things clean and avoid cluttering a single screen with too many charts. Here is how I designed each page:
 
 ### 1. Executive Overview
-This is the home page of the report, meant to give a quick snapshot of how the business is doing. I wanted a clean layout to show high-level numbers like total sales ($13.2M), overall order count (96K), customer count, and Net Revenue Margin (83.0%). I also calculated YoY growth (which is up over 208%) and added a monthly revenue trend line and a map visual to quickly see which states in Brazil generate the most sales.
+This is the home page of the report, meant to give a quick snapshot of how the business is doing. I wanted a clean layout to show high-level numbers like total sales ($13.2M), overall order count (99K), customer count (96K), and Net Revenue Margin (83.0%). I also calculated the true year-over-year growth (which stands at 21.1%) and added a monthly revenue trend line and a map visual to quickly see which states in Brazil generate the most sales.
 
 ![Executive Overview](data/Screenshot%202026-06-20%20223729.png)
 
@@ -78,7 +97,7 @@ This page is all about the money. I built this to figure out where our profit ma
 ---
 
 ### 3. Customer Segmentation (RFM)
-This was one of the most interesting parts to build. I wanted to group our customer base using the RFM model (Recency, Frequency, Monetary). I wrote some DAX to calculate how recently a customer bought, how often they buy, and how much they spend, and then classified them into groups like "At Risk", "Loyal", or "New". I put a donut chart showing the split and a scatter plot to visualize the distribution of customer values.
+This was one of the most interesting parts to build. I wanted to group our customer base using the RFM model (Recency, Frequency, Monetary). I wrote some DAX to calculate how recently a customer bought, how often they buy, and how much they spend, and then classified them into groups like "At Risk", "Loyal", or "New". I put a donut chart showing the split and a scatter plot comparing **Recency vs. Monetary** to visualize the customer value distribution.
 
 ![Customer Segmentation](data/Screenshot%202026-06-20%20223824.png)
 
@@ -103,6 +122,9 @@ Lastly, I built an operations page to track logistics and customer satisfaction.
 Since this was a learning project, I ran into a few tricky challenges that took me some time to figure out:
 
 *   **Active vs. Inactive Relationships:** This was a major headache. The orders table has three different date columns: purchase timestamp, approved date, and delivered customer date. When I tried to link all of them to my calendar table, Power BI threw errors because you can't have multiple active relationships between the same two tables. I learned about inactive relationships and how to use the `USERELATIONSHIP()` function in DAX to activate them on the fly for specific logistics calculations.
+*   **The "Average of Averages" Growth Trap:** Initially, the overall YoY growth KPI showed 208.2% because the card visual was mathematically averaging monthly YoY percentages. I rewrote the DAX using year filtering conditions to ensure it divides the absolute aggregated values, showing the true overall growth of 21.1%.
+*   **Cross-Filter Direction modeling:** The category charts initially displayed exactly 96K orders for all rows because the category filter from the products dimension could not travel upstream to the orders table. I fixed this by redefining the `[Total Orders]` measure to perform a distinct count on the downstream `olist_order_items_dataset[order_id]` table.
+*   **Geocoding with State Abbreviations:** Bing Maps plotted Brazilian state abbreviations (like SP, AL, AM) all over the globe (Spain, Alabama, Armenia). I created a calculated column concatenating `", Brazil"` and categorized the column as a "State or Province" geographical type to force the map engine to zoom in and align correctly inside Brazil.
 *   **Translating Portuguese Categories:** Since Olist is a Brazilian dataset, the product categories were in Portuguese. I didn't want the dashboard to have mixed languages. I found a translation table in the dataset and used Power Query to do a left outer join. Now all category visuals use the English names automatically.
 *   **Handling Raw Dates:** Some date columns were imported as text strings, which broke my time-intelligence calculations. I had to go back to Power Query and change the column types to Date/Time before loading them. It was a good reminder to always clean and verify data types first.
 
